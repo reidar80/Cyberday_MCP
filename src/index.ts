@@ -7,6 +7,8 @@
  * environment.
  */
 
+import { createRequire } from "node:module";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -14,8 +16,14 @@ import { z } from "zod";
 import { CyberdayClient } from "./client.js";
 import { loadSettings } from "./config.js";
 
-const PACKAGE_NAME = "mcp-server-cyberday";
-const PACKAGE_VERSION = "0.1.0";
+// Read version from package.json at runtime so the release auto-bump
+// workflow (which only touches package.json) stays the single source of
+// truth. The CJS require resolves relative to the compiled dist/index.js,
+// landing on the package root's package.json inside the installed tarball.
+const require = createRequire(import.meta.url);
+const { name: PACKAGE_NAME, version: PACKAGE_VERSION } = require(
+  "../package.json",
+) as { name: string; version: string };
 
 function makeClient(): CyberdayClient {
   const settings = loadSettings();
@@ -57,10 +65,24 @@ server.registerTool(
     title: "List Cyberday systems",
     description:
       "List every data system in the current Cyberday organisation. " +
-      "Returns each system's id, title, description, assigned user, " +
-      "workflow status, importance, dates, and the dynamic " +
-      "`text___system-template-*` fields that Cyberday attaches. " +
-      "Use this to read inventory; it does not modify anything.",
+      "Read-only; does not modify anything.\n\n" +
+      "Each row includes:\n" +
+      "- `id`, `title`, `description`, `created`, dates (`start_date`, " +
+      "`due_date`, `next_review_date`), `review_interval` (days), " +
+      "`week_num`\n" +
+      "- `assigned_user` (id, name, email) and `workflow_status` " +
+      "(title, type, color)\n" +
+      "- `importance` (numeric priority) and `cia_importance` " +
+      "(string derived from the Confidentiality/Integrity/Availability " +
+      "requirements of linked data)\n" +
+      "- `child_stats` with `total`/`done`/`active` counts for the " +
+      "compliance questions attached to the system\n" +
+      "- `goals` — list of compliance frameworks the system is mapped " +
+      "to (e.g. ISO 27001, NIS2)\n" +
+      "- `is_draft` — true if the entry was submitted by an employee " +
+      "via the Cyberday Guidebook and is awaiting admin review\n" +
+      "- Dynamic `text___system-template-*` fields that Cyberday's " +
+      "system template attaches — passed through unchanged",
     inputSchema: {},
   },
   async () => {
