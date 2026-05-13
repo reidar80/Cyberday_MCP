@@ -1,0 +1,45 @@
+name: Publish to npm
+
+# Fires when a semver tag like v0.1.0 is pushed. Tag MUST match the version
+# in package.json — the workflow fails the build otherwise.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # `contents: read` is enough to check out. `id-token: write` is what
+      # lets `npm publish --provenance` mint a signed attestation linking
+      # the published tarball back to this commit + workflow run.
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "Tag and package.json agree on version $PKG"
+
+      - name: Install dependencies (also runs build via `prepare`)
+        run: npm ci
+
+      - name: Publish to npm with provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
