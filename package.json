@@ -1,0 +1,47 @@
+{
+  "name": "mcp-server-cyberday",
+  "version": "0.1.0",
+  "description": "Community MCP server for the Cyberday ISMS (cyberday.ai)",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cyberday",
+    "isms",
+    "security",
+    "compliance"
+  ],
+  "homepage": "https://github.com/reidar80/cyberday_mcp#readme",
+  "bugs": {
+    "url": "https://github.com/reidar80/cyberday_mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reidar80/cyberday_mcp.git"
+  },
+  "type": "module",
+  "bin": {
+    "mcp-server-cyberday": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "prepare": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,19 @@
+# Source — only ship the build
+src/
+tsconfig.json
+
+# Legacy Python implementation lives in python/
+python/
+
+# Repo metadata
+.git/
+.gitignore
+.github/
+.env
+.env.*
+docs/
+
+# Dev artifacts
+node_modules/
+*.log
+.DS_Store
