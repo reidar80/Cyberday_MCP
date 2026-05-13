@@ -1,8 +1,8 @@
-# cyberday-mcp
+# mcp-server-cyberday
 
 Community MCP server for [Cyberday](https://cyberday.ai) — the Agendium Ltd information security management system.
 
-Exposes the Cyberday "external systems" API as MCP tools, so AI assistants like Claude can list and write to your data‑system inventory.
+Exposes the Cyberday "external systems" API as MCP tools so AI assistants like Claude Desktop can list and write to your data-system inventory.
 
 > Cyberday is building its own official MCP layer (announced in their ISMS workflows webinar). This is a community implementation that works against the same public REST API today.
 
@@ -14,15 +14,41 @@ Exposes the Cyberday "external systems" API as MCP tools, so AI assistants like 
 | `create_system` | Creates a new system from just a title. |
 | `create_or_update_system_advanced` | Upserts a system with nickname, owner, admin, cost center, purpose, linked systems and linked providers. |
 
-## API surface used
+## Quick start with Claude Desktop
 
-| Method | Path | Source |
-|--------|------|--------|
-| `GET` | `https://dash.appcover.com/api/external/systems/topics/` | Microsoft connector swagger |
-| `POST` | `https://dash.appcover.com/api/external/systems/topics/` | Microsoft connector swagger |
-| `POST` | `https://dash.appcover.com/api/external/systems/topics/advanced/` | Microsoft connector swagger |
+Add this to `claude_desktop_config.json` (Settings → Developer → Edit Config):
 
-Auth is the header `GROUP-API-KEY: <your org key>`. Throttle: 100 calls / 60 seconds.
+```json
+{
+  "mcpServers": {
+    "cyberday": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-cyberday"],
+      "env": {
+        "CYBERDAY_API_KEY": "your-org-api-key"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The three Cyberday tools should appear in the tools menu.
+
+Equivalent config for Claude Code:
+
+```bash
+claude mcp add cyberday -- npx -y mcp-server-cyberday
+```
+
+…then set `CYBERDAY_API_KEY` in the same shell.
+
+## Environment variables
+
+| Variable | Required | Default | Notes |
+|----------|----------|---------|-------|
+| `CYBERDAY_API_KEY` | yes | — | Org-level key from Settings → Integration settings → API Access. |
+| `CYBERDAY_BASE_URL` | no | `https://dash.appcover.com` | Override only if Cyberday tells you to. |
+| `CYBERDAY_TIMEOUT` | no | `30` | HTTP timeout in seconds. |
 
 ## Getting an API key
 
@@ -32,68 +58,32 @@ Inside Cyberday, sign in as an admin user, then:
 2. Toggle **API Access** to ON
 3. Copy the key shown
 
-## Install
+Auth is the header `GROUP-API-KEY: <your org key>`. Throttle: 100 calls / 60 seconds.
+
+## API surface used
+
+| Method | Path | Source |
+|--------|------|--------|
+| `GET` | `https://dash.appcover.com/api/external/systems/topics/` | Microsoft connector swagger |
+| `POST` | `https://dash.appcover.com/api/external/systems/topics/` | Microsoft connector swagger |
+| `POST` | `https://dash.appcover.com/api/external/systems/topics/advanced/` | Microsoft connector swagger |
+
+## Developing
 
 ```bash
-cd cyberday-mcp
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # macOS/Linux
-pip install -e .[dev]
+npm install
+npm run build
+CYBERDAY_API_KEY=... node dist/index.js
 ```
 
-## Run
+The compiled binary speaks MCP over stdio, so you can wire it into any MCP client that supports the stdio transport.
 
-```bash
-$env:CYBERDAY_API_KEY="..."     # PowerShell
-# export CYBERDAY_API_KEY=...   # bash
-python -m cyberday_mcp
-```
+## Legacy Python implementation
 
-## Claude Desktop config
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "cyberday": {
-      "command": "python",
-      "args": ["-m", "cyberday_mcp"],
-      "env": {
-        "CYBERDAY_API_KEY": "your-org-api-key"
-      }
-    }
-  }
-}
-```
-
-## Test
-
-```bash
-pytest
-```
-
-## MCP Inspector (interactive smoke test)
-
-```bash
-mcp dev src/cyberday_mcp/server.py
-```
-
-## Discovering undocumented endpoints
-
-A read-only probe script lives at `scripts/probe.py`. It queries plausible
-sibling paths under `/api/external/` and writes findings to
-`docs/discovery.md`. Run it once you have a non-production API key:
-
-```bash
-python scripts/probe.py
-```
-
-It never sends `POST`/`PUT`/`DELETE`.
+The original Python implementation still lives in [`python/`](./python/) for users who prefer running with `python -m cyberday_mcp`. The TypeScript build in this directory is the canonical NPM distribution.
 
 ## References
 
 - [Microsoft Learn — Cyberday connector](https://learn.microsoft.com/en-us/connectors/cyberday/)
 - [Cyberday connector swagger](https://github.com/microsoft/PowerPlatformConnectors/tree/dev/certified-connectors/Cyberday)
-- [Model Context Protocol Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [Model Context Protocol TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
