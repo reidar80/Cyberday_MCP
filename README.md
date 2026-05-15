@@ -78,6 +78,33 @@ CYBERDAY_API_KEY=... node dist/index.js
 
 The compiled binary speaks MCP over stdio, so you can wire it into any MCP client that supports the stdio transport.
 
+## Discovering undocumented endpoints (production-safe)
+
+Cyberday's public OpenAPI surface (the Microsoft Power Platform connector) only documents three operations on `/api/external/systems/topics/`. The real API almost certainly has more — providers, risks, tasks, frameworks, employees, etc. — but Cyberday has not published a spec for them.
+
+If you only have a production API key, you can run a hardened, read-only prober against your own org:
+
+```bash
+# Step 1 — HEAD only, no bodies fetched. Run this first.
+CYBERDAY_API_KEY=... node scripts/discover.mjs
+
+# Step 2 — for paths that returned 2xx/4xx in step 1, fetch one GET each and
+# record only the top-level JSON key names. Requires --i-understand to
+# acknowledge that this issues GETs against production.
+CYBERDAY_API_KEY=... node scripts/discover.mjs --shape --i-understand
+```
+
+Safety properties of `scripts/discover.mjs`:
+
+- Default mode is `HEAD` — no response bodies are read, so no customer data is captured.
+- Throttled to one request every 2.5s (`~24/min` vs the documented `100/60s` limit). Tunable with `--throttle-ms`.
+- Confirm-before-run prompt shows the target host, sha256 fingerprint of the API key, path count, and estimated runtime; waits for `yes` on stdin.
+- `--shape` mode captures **top-level key names only** — never values. Error-response snippets are truncated to 256 chars with emails and UUIDs regex-redacted.
+- Halts on `429` or `5xx`.
+- Output goes to `.discovery/` (gitignored). Review before committing anything.
+
+Use `--dry-run` to print the plan without sending any requests.
+
 ## Legacy Python implementation
 
 The original Python implementation still lives in [`python/`](./python/) for users who prefer running with `python -m cyberday_mcp`. The TypeScript build in this directory is the canonical NPM distribution.
